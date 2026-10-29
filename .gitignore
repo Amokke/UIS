@@ -145,6 +145,9 @@ pip-selfcheck.json
 # *.iml
 # *.ipr
 
+
+installers/*
+
 # CMake
 cmake-build-*/
 
