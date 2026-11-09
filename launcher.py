@@ -6,29 +6,141 @@ import json
 import winreg
 import re
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
-CONFIG_FILE = "apps.json"
-INSTALLERS_DIR = "installers"
+def get_resource_path(relative_path: str) -> str:
+    """Ресурсы, упакованные в EXE (apps.json, иконки и т.п.)"""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.abspath(relative_path)
 
-def parse_uninstall_string(uninstall_str: str) -> Tuple[str, list[str]]:
+def get_external_path(relative_path: str) -> str:
+    """Файлы, лежащие РЯДОМ с EXE (папка installers)"""
+    if getattr(sys, 'frozen', False):
+        # Путь к папке, где лежит сам EXE-файл
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # Обычный запуск через python launcher.py
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+CONFIG_FILE = get_resource_path("apps.json")
+INSTALLERS_DIR = get_external_path("installers")
+
+def parse_uninstall_string(uninstall_str: str) -> Tuple[str, List[str]]:
     """Разбирает UninstallString на путь и аргументы."""
-    # Часто бывает: '"C:\Program Files\...\uninstall.exe" /S'
-    match = re.match(r'^"(.*?)"\s*(.*)$', uninstall_str.strip())
+    uninstall_str = uninstall_str.strip()
+    match = re.match(r'^"(.*?)"\s*(.*)$', uninstall_str)
     if match:
         path = match.group(1)
         args = match.group(2).split()
     else:
-        # Если нет кавычек: C:\...\uninstall.exe /S
         parts = uninstall_str.split()
+        if not parts:
+            return "", []
         path = parts[0]
         args = parts[1:]
+    # Добавляем тихий режим, если его нет
+    lower_args = [a.lower() for a in args]
+    if "/s" not in lower_args and "/silent" not in lower_args and "/qn" not in args:
+        args.append("/S")
     return path, args
 
-def get_uninstall_command(app) -> Optional[list[str]]:
+def get_registry_value(reg_key: str, value_name: str) -> Optional[str]:
+    try:
+        if not reg_key or reg_key == "null":
+            return None
+        if reg_key.startswith("HKEY_LOCAL_MACHINE"):
+            root = winreg.HKEY_LOCAL_MACHINE
+            subkey = reg_key[len("HKEY_LOCAL_MACHINE\\"):]
+        elif reg_key.startswith("HKEY_CURRENT_USER"):
+            root = winreg.HKEY_CURRENT_USER
+            subkey = reg_key[len("HKEY_CURRENT_USER\\"):]
+        else:
+            return None
+
+        with winreg.OpenKey(root, subkey, 0, winreg.KEY_READ) as key:
+            try:
+                val, _ = winreg.QueryValueEx(key, value_name)
+                return str(val)
+            except FileNotFoundError:
+                return None
+    except Exception:
+        return None
+
+def key_exists(reg_key: str) -> bool:
+    try:
+        if not reg_key or reg_key == "null":
+            return False
+        if reg_key.startswith("HKEY_LOCAL_MACHINE"):
+            root = winreg.HKEY_LOCAL_MACHINE
+            subkey = reg_key[len("HKEY_LOCAL_MACHINE\\"):]
+        elif reg_key.startswith("HKEY_CURRENT_USER"):
+            root = winreg.HKEY_CURRENT_USER
+            subkey = reg_key[len("HKEY_CURRENT_USER\\"):]
+        else:
+            return False
+
+        winreg.OpenKey(root, subkey, 0, winreg.KEY_READ)
+        return True
+    except FileNotFoundError:
+        return False
+    except Exception:
+        return False
+
+def version_compare(installed_ver: Optional[str], target_ver: str) -> int:
+    """
+    Сравнивает версии.
+    Возвращает: -1 (старая), 0 (равна), 1 (новее)
+    """
+    def extract_nums(v: Optional[str]):
+        if not v:
+            return []
+        nums = re.findall(r'\d+', v)
+        return [int(x) for x in nums]
+
+    i = extract_nums(installed_ver)
+    t = extract_nums(target_ver)
+
+    if not i and not t:
+        return 0
+    if not i:
+        return -1
+    if not t:
+        return 1
+
+    for a, b in zip(i, t):
+        if a < b:
+            return -1
+        if a > b:
+            return 1
+    if len(i) < len(t):
+        return -1
+    if len(i) > len(t):
+        return 1
+    return 0
+
+def get_installed_version(app: dict) -> Optional[str]:
+    """Читает DisplayVersion из реестра."""
+    check_key = app.get("check_version_key")
+    check_val = app.get("check_version_value")
+    if check_key and check_val:
+        return get_registry_value(check_key, check_val)
+    return None
+
+def check_installed(app: dict) -> bool:
+    uninstall_key = app.get("uninstall_key")
+    if uninstall_key:
+        return key_exists(uninstall_key)
+    reg_key = app.get("reg_key")
+    if reg_key:
+        return key_exists(reg_key)
+    return False
+
+def get_uninstall_command(app: dict) -> Optional[List[str]]:
     uninstall_key = app.get("uninstall_key")
     uninstall_value = app.get("uninstall_value")
     if not uninstall_key or not uninstall_value:
@@ -46,73 +158,16 @@ def get_uninstall_command(app) -> Optional[list[str]]:
 
         with winreg.OpenKey(root, subkey, 0, winreg.KEY_READ) as key:
             uninstall_str, _ = winreg.QueryValueEx(key, uninstall_value)
-            path, args = parse_uninstall_string(uninstall_str)
-            # Добавляем тихий режим, если его нет
-            if "/S" not in args and "/silent" not in args.lower() and "/qn" not in args:
-                args.append("/S")
+            path, args = parse_uninstall_string(str(uninstall_str))
             return [path] + args
     except Exception:
         return None
 
-def check_installed(reg_key: str, reg_value: str | None) -> bool:
-    if not reg_key:
-        return False
-    try:
-        if reg_key.startswith("HKEY_LOCAL_MACHINE"):
-            root = winreg.HKEY_LOCAL_MACHINE
-            subkey = reg_key[len("HKEY_LOCAL_MACHINE\\"):]
-        elif reg_key.startswith("HKEY_CURRENT_USER"):
-            root = winreg.HKEY_CURRENT_USER
-            subkey = reg_key[len("HKEY_CURRENT_USER\\"):]
-        else:
-            return False
-
-        with winreg.OpenKey(root, subkey, 0, winreg.KEY_READ) as key:
-            if reg_value:
-                winreg.QueryValueEx(key, reg_value)
-            return True
-    except FileNotFoundError:
-        return False
-    except Exception:
-        return False
-
-# Простая эвристика версии: ищем цифры в строке и сравниваем.
-def version_compare(installed_ver: str | None, target_ver: str) -> int:
-    def extract_nums(v: str | None):
-        if not v:
-            return []
-        nums = re.findall(r'\d+', v)
-        return [int(x) for x in nums]
-
-    i = extract_nums(installed_ver)
-    t = extract_nums(target_ver)
-
-    # Если не смогли вытащить цифры — считаем, что версии разные
-    if not i or not t:
-        return -1 if not i else 1
-
-    for a, b in zip(i, t):
-        if a < b:
-            return -1
-        if a > b:
-            return 1
-    # Если все совпало до длины меньшей, но одна длиннее — считаем большей
-    if len(i) < len(t):
-        return -1
-    if len(i) > len(t):
-        return 1
-    return 0
-
-def get_installed_version(app) -> str | None:
-    # Можно добавить чтение DisplayVersion из Uninstall-ключа — это самый надёжный способ.
-    # Для простоты пока не делаем, но можно дописать.
-    return None
-
 class InstallerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Мой аналог MInstAll (Install/Uninstall/Update)")
-        self.geometry("700x650")
+        self.title("User's Install Software")
+        self.geometry("750x700")
 
         self.apps = []
         try:
@@ -121,6 +176,9 @@ class InstallerApp(ctk.CTk):
                 self.apps = data.get("apps", [])
         except Exception as e:
             self.log(f"❌ Ошибка загрузки {CONFIG_FILE}: {e}", "red")
+            lbl_error = ctk.CTkLabel(self, text=f"Не удалось загрузить apps.json: {e}", text_color="red")
+            lbl_error.pack(pady=20)
+            return
 
         if not self.apps:
             lbl_error = ctk.CTkLabel(self, text="Не найдено приложений в apps.json", text_color="red")
@@ -158,7 +216,7 @@ class InstallerApp(ctk.CTk):
             cb.pack(side="left", padx=10)
             self.check_vars[app["name"]] = {"var": var, "app": app}
 
-            lbl = ctk.CTkLabel(row, text="...", width=200)
+            lbl = ctk.CTkLabel(row, text="...", width=300)
             lbl.pack(side="right", padx=20)
             self.status_labels[app["name"]] = lbl
 
@@ -167,28 +225,28 @@ class InstallerApp(ctk.CTk):
         # Лог
         self.log_text = ctk.CTkTextbox(self, height=220, font=("Consolas", 11))
         self.log_text.pack(fill="both", expand=False, padx=10, pady=10)
-        self.log("Готов к работе. Выберите программы и нажмите Установить/Удалить/Обновить.")
+        self.log("Готов к работе. Выберите программы и нажмите Установить/Удалить/Обновить.", "white")
 
     def on_check(self, var):
-        pass  # можно добавить подсветку строки при выборе
+        pass
 
     def refresh_statuses(self):
         for name, data in self.status_labels.items():
             app = self.check_vars[name]["app"]
-            installed = check_installed(app.get("reg_key"), app.get("reg_value"))
+            installed = check_installed(app)
             target_ver = app.get("version")
             inst_ver = get_installed_version(app)
             cmp = version_compare(inst_ver, target_ver)
 
             if installed and cmp == 0:
-                status = "✅ Установлено (актуальная версия)"
+                status = f"✅ Установлено (актуальная версия {inst_ver or '?'})"
                 color = "green"
             elif installed and cmp < 0:
-                status = "🟡 Установлено (требуется обновление)"
+                status = f"🟡 Установлено (требуется обновление: есть {inst_ver}, нужно {target_ver})"
                 color = "orange"
             elif installed:
                 # cmp > 0 — у пользователя версия новее, чем в конфиге
-                status = "ℹ️ Установлено (версия новее, чем в списке)"
+                status = f"ℹ️ Установлено (версия новее: {inst_ver} vs {target_ver})"
                 color = "gray"
             else:
                 status = "⬜ Не установлено"
@@ -200,7 +258,7 @@ class InstallerApp(ctk.CTk):
         self.log_text.insert("end", msg + "\n")
         self.log_text.see("end")
 
-    def get_selected_apps(self):
+    def get_selected_apps(self) -> List[dict]:
         selected = []
         for name, data in self.check_vars.items():
             if data["var"].get() == "1":
@@ -236,28 +294,16 @@ class InstallerApp(ctk.CTk):
             self.run_install(app)
         self.refresh_statuses()
 
-    def run_install(self, app):
-        installer_path = Path(INSTALLERS_DIR) / app["file"]
+    def run_install(self, app: dict):
+        installer_path = Path(os.path.join(INSTALLERS_DIR, app["file"]))
+
         if not installer_path.exists():
             self.log(f"❌ Файл не найден: {installer_path}", "red")
             return
 
-        if check_installed(app.get("reg_key"), app.get("reg_value")):
-            self.log(f"⚠️ {app['name']} уже установлен. Пропускаем установку.", "orange")
-            return
-
-        self.log(f"🚀 Установка: {app['name']}")
+        cmd = [str(installer_path)] + app.get("args", "").split()
+        self.log(f"🚀 Запуск установки: {app['name']}")
         try:
-            if app["type"] == "msi":
-                cmd = ["msiexec", "/i", str(installer_path.absolute())]
-                if app.get("args"):
-                    cmd.extend(app["args"].split())
-            else:
-                cmd = [str(installer_path.absolute())]
-                if app.get("args"):
-                    cmd.extend(app["args"].split())
-
-            self.log(f"📜 Команда: {' '.join(cmd)}")
             proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
             if proc.returncode == 0 or proc.returncode == 3010:
                 self.log(f"✅ Установлено: {app['name']}", "green")
@@ -270,28 +316,33 @@ class InstallerApp(ctk.CTk):
         except Exception as e:
             self.log(f"❌ Исключение: {e}", "red")
 
-    def run_uninstall(self, app):
+    def run_uninstall(self, app: dict):
         cmd = get_uninstall_command(app)
         if not cmd:
-            self.log(f"❌ Не удалось получить команду удаления для: {app['name']}. Проверьте uninstall_key/uninstall_value в apps.json.", "red")
+            self.log(
+                f"❌ Не удалось получить команду удаления для: {app['name']}. Проверьте uninstall_key/uninstall_value в apps.json",
+                "red")
             return
 
         self.log(f"🗑️ Удаление: {app['name']}")
-        self.log(f"📜 Команда: {' '.join(cmd)}")
         try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-            if proc.returncode == 0 or proc.returncode == 1605:  # 1605 — компонент уже удалён
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            if proc.returncode == 0 or proc.returncode == 3010:
                 self.log(f"✅ Удалено: {app['name']}", "green")
             else:
                 self.log(f"❌ Ошибка удаления (код {proc.returncode})", "red")
                 if proc.stderr:
                     self.log(proc.stderr)
         except subprocess.TimeoutExpired:
-            self.log("❌ Превышено время ожидания удаления (5 мин)", "red")
+            self.log("❌ Превышено время ожидания (10 мин)", "red")
         except Exception as e:
-            self.log(f"❌ Исключение: {e}", "red")
+            self.log(f"❌ Исключение при удалении: {e}", "red")
+
 
 if __name__ == "__main__":
-    # ВАЖНО: запускать от имени администратора
-    app = InstallerApp()
-    app.mainloop()
+    # Важно: для установки/удаления программ лаунчер нужно запускать ОТ ИМЕНИ АДМИНИСТРАТОРА
+    try:
+        app = InstallerApp()
+        app.mainloop()
+    except Exception as e:
+        print(f"Критическая ошибка запуска: {e}")

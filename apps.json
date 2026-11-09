@@ -1,103 +1,119 @@
 {
   "apps": [
     {
-      "name": "7‑Zip",
+      "name": "7-Zip",
       "file": "7z2605-x64.exe",
       "type": "exe",
       "args": "/S",
-      "reg_key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\7-Zip",
-      "reg_value": "Path",
+      "reg_key": null,
+      "reg_value": null,
       "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\7-Zip",
       "uninstall_value": "UninstallString",
-      "version": "26.05"
+      "version": "26.05",
+      "check_version_key": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\7-Zip",
+      "check_version_value": "DisplayVersion"
     },
     {
       "name": "AIMP",
       "file": "aimp_5.40.2727_w64.exe",
       "type": "exe",
       "args": "/S",
-      "reg_key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\AIMP",
+      "reg_key": null,
       "reg_value": null,
       "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AIMP",
       "uninstall_value": "UninstallString",
-      "version": "5.40.2727"
+      "version": "5.40.2727",
+      "check_version_key": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AIMP",
+      "check_version_value": "DisplayVersion"
     },
     {
       "name": "FastStone Image Viewer",
       "file": "FSViewerSetup85.exe",
       "type": "exe",
       "args": "/S",
-      "reg_key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\FastStone Image Viewer",
+      "reg_key": null,
       "reg_value": null,
-      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\FastStone Image Viewer",
+      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\FastStone Image Viewer",
       "uninstall_value": "UninstallString",
-      "version": "8.5"
+      "version": "8.5",
+      "check_version_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\FastStone Image Viewer",
+      "check_version_value": "DisplayVersion"
     },
     {
-      "name": "K‑Lite Codec Pack",
+      "name": "K-Lite Codec Pack",
       "file": "K-Lite_Codec_Pack_2010_Mega.exe",
       "type": "exe",
-      "args": "/verysilent /norestart",
-      "reg_key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\K-Lite Codec Pack",
-      "reg_value": "InstallDir",
-      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\K-Lite Codec Pack",
+      "args": "/verysilent",
+      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\KLiteCodecPack_is1",
       "uninstall_value": "UninstallString",
-      "version": "2010"
+      "version": "18.1.0",
+      "check_version_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\KLiteCodecPack_is1",
+      "check_version_value": "DisplayVersion"
     },
     {
       "name": "Light Alloy",
       "file": "LA_Setup_v4.11.2.exe",
       "type": "exe",
       "args": "/S",
-      "reg_key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Light Alloy",
+      "reg_key": null,
       "reg_value": null,
-      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Light Alloy",
+      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Light Alloy",
       "uninstall_value": "UninstallString",
-      "version": "4.11.2"
+      "version": "4.11.2",
+      "check_version_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Light Alloy",
+      "check_version_value": "DisplayVersion"
     },
     {
       "name": "LibreOffice",
       "file": "LibreOffice_26.8.1_Win_x86-64.msi",
       "type": "msi",
       "args": "/qn /norestart",
-      "reg_key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\LibreOffice",
-      "reg_value": "InstallRoot",
-      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\LibreOffice",
+      "reg_key": null,
+      "reg_value": null,
+      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\LibreOffice",
       "uninstall_value": "UninstallString",
-      "version": "26.8.1"
+      "version": "26.8.1",
+      "check_version_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\LibreOffice",
+      "check_version_value": "DisplayVersion"
     },
     {
       "name": "Notepad++",
       "file": "npp.8.9.8.1.Installer.x64.exe",
       "type": "exe",
       "args": "/S /NOREBOOT",
-      "reg_key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Notepad++",
-      "reg_value": "InstallPath",
-      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Notepad++",
+      "reg_key": null,
+      "reg_value": null,
+      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Notepad++",
       "uninstall_value": "UninstallString",
-      "version": "8.9.8.1"
+      "version": "8.9.8.1",
+      "check_version_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Notepad++",
+      "check_version_value": "DisplayVersion"
     },
     {
       "name": "qBittorrent",
       "file": "qbittorrent_5.3.0_x64_setup.exe",
       "type": "exe",
       "args": "/S /NOREBOOT",
-      "reg_key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\qBittorrent",
+      "reg_key": null,
       "reg_value": null,
-      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\qBittorrent",
+      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\qBittorrent",
       "uninstall_value": "UninstallString",
-      "version": "5.3.0"
+      "version": "5.3.0",
+      "check_version_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\qBittorrent",
+      "check_version_value": "DisplayVersion"
     },
-    {
-      "name": "Яндекс Браузер",
+        {
+      "name": "Яндекс Браузер",
       "file": "Yandex.exe",
       "type": "exe",
-      "args": "--silent --do-not-launch-chrome",
-      "reg_key": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Yandex\\Browser",
-      "reg_value": "InstallDirectory",
-      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\YandexBrowser",
+      "args": "/silent",
+      "reg_key": null,
+      "reg_value": null,
+      "uninstall_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\YandexBrowser",
       "uninstall_value": "UninstallString",
-      "version": "latest"
+      "version": "26.10.0.1854",
+      "check_version_key": "HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\YandexBrowser",
+      "check_version_value": "DisplayVersion"
     }
   ]
 }
